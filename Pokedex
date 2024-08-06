@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Pokémon</title>
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            overflow: hidden; /* Prevents scrollbars from appearing */
+        }
+        #background-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-image: url('https://i.pinimg.com/736x/e6/5f/4a/e65f4a73e2a09c6ef3661d1197587f57.jpg');
+            background-size: contain; /* Ensure background image is contained within the container */
+            background-repeat: no-repeat;
+            background-position: center; /* Center the background image */
+            transition: opacity 1s ease-in-out;
+        }
+        #cyan-circle, #green-circle, #pokedex-entry, #pokemon-name {
+            transition: opacity 1s ease-in-out;
+        }
+        #cyan-circle {
+            position: absolute;
+            width: 102px; /* Adjust size to match the circle in the background */
+            height: 102px; /* Adjust size to match the circle in the background */
+            background-color: rgba(0, 255, 255, 0.5); /* Semi-transparent cyan */
+            border-radius: 50%;
+            animation: flicker 1s infinite;
+            top: 13.3%; /* Adjust to align with the circle in the background */
+            left: 32%; /* Adjust to align with the circle in the background */
+            transform: translate(-50%, -50%); /* Center the circle */
+        }
+        #green-circle {
+            position: absolute;
+            width: 102px; /* Adjust size to match the circle in the background */
+            height: 102px; /* Adjust size to match the circle in the background */
+            background-color: rgba(0, 255, 0, 0.5); /* Semi-transparent green */
+            border-radius: 50%;
+            animation: flicker 1s infinite;
+            top: 13.3%; /* Adjust to align with the circle in the background */
+            left: 72%; /* Adjust to align with the circle in the background */
+            transform: translate(-50%, -50%); /* Center the circle */
+        }
+        #pokedex-entry {
+            position: absolute;
+            width: 50%; /* Half the size of the background */
+            height: 150px; /* Fixed height */
+            top: 50%; /* Center vertically */
+            left: 50%; /* Center horizontally */
+            transform: translate(-50%, -50%);
+            text-align: left;
+            font-size: 1.5em; /* Make the font size bigger */
+            color: black; /* Change text color to black */
+            background-color: transparent; /* Remove background color */
+            padding: 10px;
+            border-radius: 10px;
+            overflow-y: auto; /* Add vertical scroll if content overflows */
+            animation: slideIn 1s forwards, shake 0.5s 1s; /* Slide in and then shake */
+        }
+        #pokedex-entry ul {
+            list-style-type: disc; /* Add dots to the sentences */
+            padding-left: 20px; /* Add padding to the list */
+        }
+        #pokemon-name {
+            position: absolute;
+            bottom: 60px; /* Move the name slightly up */
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2em;
+            font-weight: bold; /* Make the name thick */
+            color: black;
+            transition: opacity 1s ease-in-out;
+        }
+        #pokemon-image {
+            width: 200px; /* Adjust the size as needed */
+            height: auto;
+            position: absolute;
+            animation: move 8s infinite; /* Slower animation */
+            transform: scaleX(-1); /* Start with a horizontal flip */
+        }
+        @keyframes move {
+            0% {
+                left: 0; /* Start from the left */
+                transform: scaleX(-1); /* Face left */
+            }
+            49.9% {
+                left: calc(100% - 200px); /* Move to the right */
+                transform: scaleX(-1);
+            }
+            50% {
+                left: calc(100% - 200px);
+                transform: scaleX(1); /* Flip to face right */
+                animation-play-state: paused; /* Pause animation */
+            }
+            100% {
+                left: 0; /* Move back to the left */
+                transform: scaleX(1);
+            }
+        }
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        @keyframes slideIn {
+            from {
+                transform: translate(-50%, -50%) translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, -50%) translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translate(-50%, -50%) translateX(0); }
+            25% { transform: translate(-50%, -50%) translateX(-10px); }
+            50% { transform: translate(-50%, -50%) translateX(10px); }
+            75% { transform: translate(-50%, -50%) translateX(-10px); }
+        }
+    </style>
+</head>
+<body>
+    <div id="background-container">
+        <div id="cyan-circle"></div>
+        <div id="green-circle"></div>
+        <div id="pokedex-entry"><ul></ul></div>
+        <div id="pokemon-name"></div>
+    </div>
+    <img id="pokemon-image" src="fallback-image-url" alt="Pokémon Picture">
+    <script>
+        async function fetchRandomPokemon(retries = 3) {
+            const randomId = Math.floor(Math.random() * 898) + 1; // There are 898 Pokémon in the National Pokédex
+            try {
+                const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${randomId}`);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+
+                // Assuming the picture URL is available in the sprites object
+                const pictureUrl = data.sprites.versions['generation-v']['black-white'].animated.front_default;
+                document.getElementById('pokemon-image').src = pictureUrl;
+
+                // Fetch the species data for the Pokédex entry
+                const speciesResponse = await fetch(data.species.url);
+                const speciesData = await speciesResponse.json();
+                const pokedexEntry = speciesData.flavor_text_entries.find(entry => entry.language.name === 'en').flavor_text;
+                const pokedexEntryList = pokedexEntry.split('. ').map(entry => `<li>${entry}.</li>`).join('');
+                document.querySelector('#pokedex-entry ul').innerHTML = pokedexEntryList;
+
+                // Set the Pokémon name
+                document.getElementById('pokemon-name').innerText = data.name.charAt(0).toUpperCase() + data.name.slice(1);
+
+                // Set the background based on the Pokémon type
+                const pokemonType = data.types[0].type.name;
+                console.log(`Fetched Pokémon type: ${pokemonType}`); // Log the Pokémon type
+            } catch (error) {
+                console.error('Failed to fetch the Pokémon picture:', error);
+                if (retries > 0) {
+                    setTimeout(() => fetchRandomPokemon(retries - 1), 1000); // Retry after 1 second
+                }
+            }
+        }
+
+        fetchRandomPokemon();
+
+        // Timer to make elements transparent after 5 seconds
+        setTimeout(() => {
+            document.getElementById('background-container').style.opacity = 0;
+            document.getElementById('cyan-circle').style.opacity = 0;
+            document.getElementById('green-circle').style.opacity = 0;
+            document.getElementById('pokedex-entry').style.opacity = 0;
+            document.getElementById('pokemon-name').style.opacity = 0;
+        }, 5000);
+
+        // Pause Pokémon animation for 10 seconds when it reaches the right side
+        const pokemonImage = document.getElementById('pokemon-image');
+        pokemonImage.addEventListener('animationiteration', () => {
+            if (pokemonImage.style.transform === 'scaleX(1)') {
+                pokemonImage.style.animationPlayState = 'paused';
+                setTimeout(() => {
+                    pokemonImage.style.animationPlayState = 'running';
+                }, 10000);
+            }
+        });
+    </script>
+</body>
+</html>
